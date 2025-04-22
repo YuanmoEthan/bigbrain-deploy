@@ -27,3 +27,60 @@
     min-height: 100vh;
   }
   
+   /* Header styles */
+   #main-header {
+    background-color: var(--dark-surface);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  
+  .logo h1 {
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  
+  #main-nav {
+    display: flex;
+    gap: 1.5rem;
+  }
+  
+  .nav-item {
+    list-style: none;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
+  }
+  
+  .nav-item:hover {
+    color: var(--primary);
+  }
+  
+  .nav-item.active {
+    color: var(--primary);
+    font-weight: 600;
+  }
+  
+  /* Main content styles */
+  #main-content {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  
+  /* Footer styles */
+  #main-footer {
+    background-color: var(--dark-surface);
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+  }
