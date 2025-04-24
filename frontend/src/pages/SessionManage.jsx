@@ -368,3 +368,60 @@ const SessionManage = () => {
           Logout
         </button>
       </div>
+
+{error && <div className="error-message">{error}</div>}
+
+<div className="session-status">
+  <p>Status: {session.active ? 'Active' : 'Ended'}</p>
+  <p>Position: {session.position === -1 ? 'Lobby' : session.position + 1}</p>
+  <p>Players: {session.players.length}</p>
+</div>
+
+<div className="session-controls">
+  {session.active && (
+    <>
+      <button
+        onClick={handleAdvance}
+        // Only disable the button if:
+        // 1. We're at the last question (not in lobby but at the end) OR
+        // 2. We're in the lobby AND there are no players yet
+        // 3. There are no questions in the game
+        disabled={(session.position !== -1 && session.position >= session.questions.length - 1) ||
+                (session.position === -1 && session.players.length === 0) ||
+                !session.questions || session.questions.length === 0}
+      >
+        {session.position === -1 ? 'Start Game' : 'Next Question'}
+      </button>
+      <button onClick={() => setShowStopConfirm(true)}>
+        Stop Session
+      </button>
+    </>
+  )}
+
+  {!session.active && (
+    <button onClick={() => setResultsView(true)}>
+      View Results
+    </button>
+  )}
+</div>
+
+{renderCurrentQuestion()}
+
+{/* Confirmation Modal */}
+{showStopConfirm && (
+  <div className="modal">
+    <div className="modal-content">
+      <h2>Stop Session</h2>
+      <p>Are you sure you want to stop this session? This cannot be undone.</p>
+      <div className="modal-actions">
+        <button onClick={handleStopSession}>Yes, Stop Session</button>
+        <button onClick={() => setShowStopConfirm(false)}>Cancel</button>
+      </div>
+    </div>
+  </div>
+)}
+</div>
+);
+};
+
+export default SessionManage;
