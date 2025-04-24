@@ -439,3 +439,111 @@ const PlayerGame = () => {
       </div>
     );
   }
+
+  // Render the question screen
+  if (loading && !currentQuestion) {
+    return <p>Loading question...</p>;
+  }
+
+  if (error && !currentQuestion) {
+    return (
+      <div className="error-container">
+        <div className="error-message">{error}</div>
+        <button onClick={handleReturnHome} className="return-button">
+          Return to Homepage
+        </button>
+      </div>
+    );
+  }
+
+  if (!currentQuestion) {
+    return (
+      <div className="no-question-container">
+        <p>No question available</p>
+        <button onClick={handleReturnHome} className="return-button">
+          Return to Homepage
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="player-game-container">
+      <div className="game-header">
+        <div className="timer">Time remaining: {timeLeft} seconds</div>
+      </div>
+
+      <div className="question">
+        <h2>{currentQuestion.text}</h2>
+
+        {currentQuestion.mediaUrl && (
+          <div className="question-media">
+            {currentQuestion.mediaUrl.includes('youtube') ? (
+              <iframe
+                src={currentQuestion.mediaUrl}
+                title="Question Video"
+                width="560"
+                height="315"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <img src={currentQuestion.mediaUrl} alt="Question Media" />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="answers">
+        {currentQuestion.answers.map((answer) => (
+          <div
+            key={answer.id}
+            className={`answer-option ${selectedAnswers.includes(answer.id) ? 'selected' : ''} ${
+              answerSubmitted && correctAnswers &&
+              (correctAnswers.includes(answer.id) ? 'correct' : (selectedAnswers.includes(answer.id) ? 'incorrect' : ''))
+            }`}
+            onClick={() => handleAnswerSelect(answer.id)}
+          >
+            {answer.text}
+          </div>
+        ))}
+      </div>
+
+      {currentQuestion.type === 'multiple' && !answerSubmitted && (
+        <button
+          onClick={handleSubmitAnswers}
+          className="submit-button"
+          disabled={selectedAnswers.length === 0}
+        >
+          Submit Answers
+        </button>
+      )}
+
+      {answerSubmitted && !correctAnswers && (
+        <div className="answer-feedback">
+          <p>Answer submitted! Waiting for the next question...</p>
+        </div>
+      )}
+
+      {answerSubmitted && correctAnswers && (
+        <div className="answer-feedback">
+          <h3>Correct Answers:</h3>
+          <ul>
+            {currentQuestion.answers
+              .filter(answer => correctAnswers.includes(answer.id))
+              .map(answer => (
+                <li key={answer.id}>{answer.text}</li>
+              ))
+            }
+          </ul>
+          <p>Waiting for the next question...</p>
+        </div>
+      )}
+
+      {error && <div className="error-message">{error}</div>}
+    </div>
+  );
+};
+
+export default PlayerGame;
