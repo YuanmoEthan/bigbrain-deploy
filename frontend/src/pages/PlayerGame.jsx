@@ -261,3 +261,181 @@ const PlayerGame = () => {
       }
     }
   };
+
+  const fetchCorrectAnswers = async () => {
+    try {
+      const answers = await api.getPlayerAnswers(playerId);
+      setCorrectAnswers(answers);
+    } catch (_err) {
+      console.log('Answers not yet available, may need to wait for admin action');
+      // Don't set error, as this is expected behavior
+    }
+  };
+
+  const handleAnswerSelect = (answerId) => {
+    // Don't allow changes if answer already submitted or game ended
+    if (answerSubmitted || gameEnded) return;
+
+    let newSelectedAnswers;
+
+    // For multiple choice questions
+    if (currentQuestion.type === 'multiple') {
+      if (selectedAnswers.includes(answerId)) {
+        newSelectedAnswers = selectedAnswers.filter(id => id !== answerId);
+      } else {
+        newSelectedAnswers = [...selectedAnswers, answerId];
+      }
+    } else {
+      // For single choice and judgement questions
+      newSelectedAnswers = [answerId];
+
+      // 对于单选和判断题，立即提交答案
+      submitAnswer(newSelectedAnswers);
+    }
+
+    setSelectedAnswers(newSelectedAnswers);
+
+    // 不再为所有类型的问题自动提交答案，而是仅为单选和判断题提交
+  };
+
+  // 添加一个新的提交按钮处理函数
+  const handleSubmitAnswers = () => {
+    if (selectedAnswers.length === 0 || answerSubmitted) return;
+    submitAnswer(selectedAnswers);
+  };
+
+  const submitAnswer = async (answerIds) => {
+    if (!answerIds || answerIds.length === 0) {
+      // Don't submit empty answers
+      return;
+    }
+
+    try {
+      console.log('Submitting answer:', answerIds);
+
+      // Mark as submitted first to prevent double submission
+      setAnswerSubmitted(true);
+
+      // Submit to backend
+      await api.submitPlayerAnswers(playerId, answerIds);
+      setError('');
+
+      console.log('Answer submitted successfully');
+
+      // After submitting, try to get correct answers
+      try {
+        const answers = await api.getPlayerAnswers(playerId);
+        if (answers && answers.length > 0) {
+          console.log('Received correct answers immediately:', answers);
+          setCorrectAnswers(answers);
+        } else {
+          console.log('No correct answers available yet');
+        }
+      } catch (answerErr) {
+        console.log('Could not get correct answers yet:', answerErr.message);
+        // This is expected, will retry in polling
+      }
+
+      // Manually trigger a check for updates in case polling is delayed
+      setTimeout(() => {
+        console.log('Checking for question updates after answer submission');
+        api.getPlayerQuestion(playerId)
+          .then(newQuestion => {
+            if (newQuestion && newQuestion.position !== currentPosition) {
+              console.log('New question detected after answer submission:', newQuestion.position);
+              setCurrentPosition(newQuestion.position);
+              setCurrentQuestion(newQuestion);
+              setSelectedAnswers([]);
+              setAnswerSubmitted(false);
+              setCorrectAnswers(null);
+              setError('');
+            }
+          })
+          .catch(err => {
+            console.log('Error checking for new question:', err.message);
+          });
+      }, 1500); // Wait 1.5 seconds before checking
+
+    } catch (err) {
+      console.error('Submit answer error:', err);
+      setAnswerSubmitted(false); // Reset so user can try again
+
+      if (err.response?.status === 400) {
+        // Session might have ended
+        try {
+          // Try to get results
+          const playerResults = await api.getPlayerResults(playerId);
+          if (playerResults) {
+            setResults(playerResults);
+            setGameEnded(true);
+            return;
+          }
+        } catch (_resultErr) {
+          // Ignore this error
+        }
+
+        setError('Unable to submit answer, session may have ended');
+      } else {
+        setError('Error submitting answer');
+      }
+    }
+  };
+
+  const handleReturnHome = () => {
+    navigate('/');
+  };
+
+  // Game ended state
+  if (gameEnded && !results) {
+    return (
+      <div className="game-ended-screen">
+        <h1>Game Ended</h1>
+        <p>{error || 'Session has closed, thanks for participating!'}</p>
+        <button onClick={handleReturnHome} className="return-button">
+          Return to Homepage
+        </button>
+      </div>
+    );
+  }
+
+  // Render the waiting screen
+  if (!gameStarted && !results && !gameEnded) {
+    return (
+      <div className="waiting-screen">
+        <h1>Waiting for Game to Start</h1>
+        <p>Please wait for the admin to start the game.</p>
+        {error && <div className="error-message">{error}</div>}
+      </div>
+    );
+  }
+
+  // Render the results screen
+  if (results) {
+    const correctCount = results.filter(answer => answer.correct).length;
+
+    return (
+      <div className="results-screen">
+        <h1>Game Results</h1>
+        <div className="results-summary">
+          <h2>You answered {correctCount} out of {results.length} questions correctly!</h2>
+        </div>
+
+        <div className="results-details">
+          <h3>Question Details:</h3>
+          {results.map((result, index) => (
+            <div key={index} className="question-result">
+              <p>Question {index + 1}:</p>
+              <p>Correct: {result.correct ? 'Yes' : 'No'}</p>
+              <p>Time taken: {result.answeredAt && result.questionStartedAt
+                ? ((new Date(result.answeredAt).getTime() - new Date(result.questionStartedAt).getTime()) / 1000).toFixed(2)
+                : 'N/A'} seconds</p>
+            </div>
+          ))}
+        </div>
+
+        <button onClick={handleReturnHome} className="return-button">
+          Return to Homepage
+        </button>
+      </div>
+    );
+  }
