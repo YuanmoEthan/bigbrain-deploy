@@ -142,3 +142,186 @@ const QuestionEdit = () => {
       setLoading(false);
     }
   };
+
+  const handleAnswerChange = (index, field, value) => {
+    const updatedAnswers = [...answers];
+    updatedAnswers[index] = {
+      ...updatedAnswers[index],
+      [field]: value,
+    };
+    setAnswers(updatedAnswers);
+  };
+
+  const handleCorrectAnswerToggle = (index) => {
+    const updatedAnswers = [...answers];
+
+    // For single and judgement types, uncheck all answers first
+    if (questionType === 'single' || questionType === 'judgement') {
+      updatedAnswers.forEach(answer => {
+        answer.isCorrect = false;
+      });
+    }
+
+    // Toggle the selected answer
+    updatedAnswers[index] = {
+      ...updatedAnswers[index],
+      isCorrect: !updatedAnswers[index].isCorrect,
+    };
+
+    setAnswers(updatedAnswers);
+  };
+
+  const addAnswer = () => {
+    if (answers.length >= 6) {
+      setError('Maximum 6 answers allowed');
+      return;
+    }
+
+    setAnswers([...answers, { id: Date.now(), text: '', isCorrect: false }]);
+  };
+
+  const removeAnswer = (index) => {
+    if (answers.length <= 2) {
+      setError('Minimum 2 answers required');
+      return;
+    }
+
+    const updatedAnswers = [...answers];
+    updatedAnswers.splice(index, 1);
+    setAnswers(updatedAnswers);
+  };
+
+  if (loading) {
+    return <p>Loading question details...</p>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
+  if (!question) {
+    return <p>Question not found</p>;
+  }
+
+  return (
+    <div className="question-edit-container">
+      <div className="question-edit-header">
+        <h1>Edit Question</h1>
+        <button onClick={() => navigate(`/game/${gameId}`)} className="back-button">
+          Back to Game
+        </button>
+        <button onClick={handleLogout} className="logout-button">
+          Logout
+        </button>
+      </div>
+
+      <div className="question-form">
+        <div className="form-group">
+          <label htmlFor="questionText">Question Text:</label>
+          <input
+            type="text"
+            id="questionText"
+            value={questionText}
+            onChange={(e) => setQuestionText(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="questionType">Question Type:</label>
+          <select
+            id="questionType"
+            value={questionType}
+            onChange={(e) => setQuestionType(e.target.value)}
+          >
+            <option value="single">Single Choice</option>
+            <option value="multiple">Multiple Choice</option>
+            <option value="judgement">Judgement</option>
+          </select>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="timeLimit">Time Limit (seconds):</label>
+          <input
+            type="number"
+            id="timeLimit"
+            value={timeLimit}
+            onChange={(e) => setTimeLimit(parseInt(e.target.value, 10))}
+            min="5"
+            max="120"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="points">Points:</label>
+          <input
+            type="number"
+            id="points"
+            value={points}
+            onChange={(e) => setPoints(parseInt(e.target.value, 10))}
+            min="1"
+          />
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="mediaUrl">Media URL (optional):</label>
+          <input
+            type="text"
+            id="mediaUrl"
+            value={mediaUrl}
+            onChange={(e) => setMediaUrl(e.target.value)}
+            placeholder="Enter YouTube URL or image URL"
+          />
+        </div>
+
+        <h3>Answers (Min: 2, Max: 6)</h3>
+        {answers.map((answer, index) => (
+          <div key={answer.id} className="answer-item">
+            <div className="form-group">
+              <label htmlFor={`answer-${index}`}>Answer {index + 1}:</label>
+              <input
+                type="text"
+                id={`answer-${index}`}
+                value={answer.text}
+                onChange={(e) => handleAnswerChange(index, 'text', e.target.value)}
+              />
+            </div>
+            <div className="answer-actions">
+              <label>
+                <input
+                  type={questionType === 'multiple' ? 'checkbox' : 'radio'}
+                  checked={answer.isCorrect}
+                  onChange={() => handleCorrectAnswerToggle(index)}
+                />
+                Correct Answer
+              </label>
+              <button
+                onClick={() => removeAnswer(index)}
+                className="remove-button"
+                disabled={answers.length <= 2}
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        ))}
+
+        <div className="answer-controls">
+          <button
+            onClick={addAnswer}
+            disabled={answers.length >= 6}
+          >
+            Add Answer
+          </button>
+        </div>
+
+        <div className="form-actions">
+          <button onClick={handleSaveQuestion} className="save-button">
+            Save Question
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default QuestionEdit;
