@@ -192,3 +192,62 @@ const Dashboard = () => {
           ))}
         </div>
       )}
+
+      {/* New Game Modal */}
+      {showNewGameModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Create New Game</h2>
+            <input
+              type="text"
+              placeholder="Game Name"
+              value={newGameName}
+              onChange={(e) => setNewGameName(e.target.value)}
+            />
+            <div className="modal-actions">
+              <button onClick={handleCreateGame}>Create</button>
+              <button onClick={() => setShowNewGameModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Session ID Modal */}
+      {showSessionModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Game Session Started</h2>
+            <p>Session ID: {sessionId}</p>
+            <button onClick={copySessionLink}>Copy Link</button>
+            <button onClick={() => setShowSessionModal(false)}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {/* Join Game Modal */}
+      {showJoinGameModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <h2>Join Game</h2>
+            <div className="form-group">
+              <label htmlFor="sessionId">Session ID:</label>
+              <input
+                type="text"
+                id="sessionId"
+                value={joinSessionId}
+                onChange={(e) => setJoinSessionId(e.target.value)}
+                placeholder="Enter session ID"
+              />
+            </div>
+            <div className="modal-actions">
+              <button onClick={handleJoinGame}>Join</button>
+              <button onClick={() => setShowJoinGameModal(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default Dashboard;
