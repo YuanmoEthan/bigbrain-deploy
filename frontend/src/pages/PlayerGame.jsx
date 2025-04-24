@@ -164,3 +164,100 @@ const PlayerGame = () => {
         // Don't set other errors during polling to avoid UI flicker
       }
     };
+
+    // Check immediately
+    checkForQuestionUpdates();
+
+    // Then set up polling (every 1 second to be more responsive)
+    questionUpdateInterval = setInterval(checkForQuestionUpdates, 1000);
+
+    return () => {
+      if (questionUpdateInterval) {
+        console.log('Clearing question update interval');
+        clearInterval(questionUpdateInterval);
+      }
+    };
+  }, [playerId, gameStarted, gameEnded, currentQuestion, currentPosition, answerSubmitted, correctAnswers, error]);
+
+  // Additional useEffect to handle answer feedback and prepare for next question
+  useEffect(() => {
+    // If we have submitted an answer and received correct answers
+    if (answerSubmitted && correctAnswers) {
+      console.log('Answer submitted and correct answers received, ready for next question');
+
+      // We don't need to do anything here - just make the UI show the feedback
+      // The question polling will handle detecting new questions
+    }
+  }, [answerSubmitted, correctAnswers]);
+
+  // Timer for current question
+  useEffect(() => {
+    if (!currentQuestion || answerSubmitted || !gameStarted) return;
+
+    // Make sure question has a timestamp
+    if (!currentQuestion.isoTimeLastQuestionStarted) {
+      console.warn('Question missing start time');
+      return;
+    }
+
+    const questionStartTime = new Date(currentQuestion.isoTimeLastQuestionStarted).getTime();
+    const questionDuration = (currentQuestion.timeLimit || 30) * 1000; // Default 30 seconds
+    const endTime = questionStartTime + questionDuration;
+
+    // Initial time calculation
+    const initialTimeLeft = Math.max(0, Math.floor((endTime - new Date().getTime()) / 1000));
+    setTimeLeft(initialTimeLeft);
+
+    // Update timer every second
+    const timerInterval = setInterval(() => {
+      const newTimeLeft = Math.max(0, Math.floor((endTime - new Date().getTime()) / 1000));
+      setTimeLeft(newTimeLeft);
+
+      // When timer runs out, try to get the correct answer
+      if (newTimeLeft === 0 && !answerSubmitted) {
+        clearInterval(timerInterval);
+        setAnswerSubmitted(true);
+        fetchCorrectAnswers();
+      }
+    }, 1000);
+
+    return () => clearInterval(timerInterval);
+  }, [currentQuestion, answerSubmitted, gameStarted]);
+
+  const fetchCurrentQuestion = async () => {
+    try {
+      const question = await api.getPlayerQuestion(playerId);
+
+      if (!question) {
+        console.warn('No question returned from API');
+        return;
+      }
+
+      setCurrentQuestion(question);
+      setCurrentPosition(question.position || -1);
+      setSelectedAnswers([]);
+      setAnswerSubmitted(false);
+      setCorrectAnswers(null);
+      setError('');
+    } catch (err) {
+      console.error('Question fetch error:', err);
+
+      if (err.response?.status === 403) {
+        // Game might be over, check for results
+        try {
+          const playerResults = await api.getPlayerResults(playerId);
+          setResults(playerResults);
+          setGameEnded(true);
+          setGameStarted(false);
+        } catch (_resultErr) {
+          setError('Game has ended, but results could not be retrieved');
+          setGameEnded(true);
+        }
+      } else if (err.response?.status === 400) {
+        setError('Invalid player ID');
+        setGameEnded(true);
+      } else {
+        setError('Unable to get current question');
+      }
+    }
+  };
