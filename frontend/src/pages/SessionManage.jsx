@@ -191,3 +191,180 @@ const SessionManage = () => {
       </div>
     );
   };
+
+  const renderTopFivePlayers = () => {
+    // Sort players by score
+    const sortedPlayers = [...results].sort((a, b) => {
+      const scoreA = a.answers.filter(ans => ans.correct).length;
+      const scoreB = b.answers.filter(ans => ans.correct).length;
+      return scoreB - scoreA;
+    }).slice(0, 5);
+
+    return (
+      <div className="top-players">
+        <h3>Top Players</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Name</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedPlayers.map((player, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{player.name}</td>
+                <td>{player.answers.filter(ans => ans.correct).length}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderQuestionPerformanceChart = () => {
+    // Calculate percentage of correct answers per question
+    const questionStats = [];
+
+    if (session && session.questions) {
+      for (let i = 0; i < session.questions.length; i++) {
+        let correctCount = 0;
+        let totalAttempts = 0;
+
+        results.forEach(player => {
+          if (player.answers[i] && player.answers[i].answeredAt) {
+            totalAttempts++;
+            if (player.answers[i].correct) {
+              correctCount++;
+            }
+          }
+        });
+
+        const percentage = totalAttempts > 0 ? (correctCount / totalAttempts) * 100 : 0;
+        questionStats.push({
+          questionNumber: i + 1,
+          percentageCorrect: percentage.toFixed(2),
+        });
+      }
+    }
+
+    return (
+      <div className="question-stats">
+        <h3>Question Performance</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Percentage Correct</th>
+            </tr>
+          </thead>
+          <tbody>
+            {questionStats.map((stat) => (
+              <tr key={stat.questionNumber}>
+                <td>{stat.questionNumber}</td>
+                <td>{stat.percentageCorrect}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  const renderAverageResponseTimeChart = () => {
+    // Calculate average response time per question
+    const responseTimeStats = [];
+
+    if (session && session.questions) {
+      for (let i = 0; i < session.questions.length; i++) {
+        let totalTime = 0;
+        let totalResponses = 0;
+
+        results.forEach(player => {
+          if (player.answers[i] && player.answers[i].answeredAt && player.answers[i].questionStartedAt) {
+            const startTime = new Date(player.answers[i].questionStartedAt).getTime();
+            const endTime = new Date(player.answers[i].answeredAt).getTime();
+            const responseTime = (endTime - startTime) / 1000; // Convert to seconds
+
+            totalTime += responseTime;
+            totalResponses++;
+          }
+        });
+
+        const averageTime = totalResponses > 0 ? totalTime / totalResponses : 0;
+        responseTimeStats.push({
+          questionNumber: i + 1,
+          averageResponseTime: averageTime.toFixed(2),
+        });
+      }
+    }
+
+    return (
+      <div className="response-time-stats">
+        <h3>Average Response Time (seconds)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Question</th>
+              <th>Average Time (s)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {responseTimeStats.map((stat) => (
+              <tr key={stat.questionNumber}>
+                <td>{stat.questionNumber}</td>
+                <td>{stat.averageResponseTime}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
+
+  if (loading && !session) {
+    return <p>Loading session data...</p>;
+  }
+
+  if (error) {
+    return <div className="error-message">{error}</div>;
+  }
+
+  if (!session) {
+    return <p>Session not found</p>;
+  }
+
+  if (resultsView) {
+    return (
+      <div className="results-container">
+        <div className="results-header">
+          <h1>Session Results</h1>
+          <button onClick={() => navigate('/dashboard')} className="back-button">
+            Back to Dashboard
+          </button>
+          <button onClick={handleLogout} className="logout-button">
+            Logout
+          </button>
+        </div>
+
+        {renderTopFivePlayers()}
+        {renderQuestionPerformanceChart()}
+        {renderAverageResponseTimeChart()}
+      </div>
+    );
+  }
+
+  return (
+    <div className="session-container">
+      <div className="session-header">
+        <h1>Game Session: {sessionId}</h1>
+        <button onClick={() => navigate('/dashboard')} className="back-button">
+          Back to Dashboard
+        </button>
+        <button onClick={handleLogout} className="logout-button">
+          Logout
+        </button>
+      </div>
